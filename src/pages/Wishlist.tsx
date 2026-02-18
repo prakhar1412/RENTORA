@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 import ListingCard from "@/components/ListingCard";
-import { listings } from "@/data/listings";
+import { getListings } from "@/lib/listings-store";
 import { Link } from "react-router-dom";
 
 const Wishlist = () => {
+  const listings = getListings();
   const wishlistItems = listings.slice(0, 6);
 
   return (

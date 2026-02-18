@@ -1,22 +1,74 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronLeft, Check, Upload, MapPin } from "lucide-react";
+import { ChevronRight, ChevronLeft, Check, Upload, MapPin, X } from "lucide-react";
 import { categories } from "@/data/listings";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { addListing } from "@/lib/listings-store";
 
 const steps = ["Basic Info", "Location", "Pricing", "Availability", "Review"];
 
 const AddListing = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     title: "", category: "", description: "",
     location: "", address: "",
     priceHourly: "", priceDaily: "",
     availableFrom: "", availableTo: "",
+    image: "", // Base64 string for image
   });
 
   const updateField = (field: string, value: string) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5000000) { // 5MB limit
+        toast.error("Image too large. Please upload an image smaller than 5MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateField("image", reader.result as string);
+        toast.success("Image uploaded successfully!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = () => {
+    try {
+      if (!formData.title || !formData.category || !formData.priceHourly) {
+        toast.error("Please fill in all required fields.");
+        return;
+      }
+
+      const newListing = {
+        title: formData.title,
+        location: formData.location || "Delhi NCR", // Fallback
+        category: formData.category,
+        priceHourly: Number(formData.priceHourly),
+        priceDaily: Number(formData.priceDaily) || Number(formData.priceHourly) * 4,
+        rating: 0,
+        image: formData.image || "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=400&fit=crop",
+        images: formData.image ? [formData.image] : [],
+        description: formData.description || "No description provided.",
+        amenities: ["WiFi", "AC"], // Default amenities
+        reviews: [],
+        host: "You",
+        coordinates: { lat: 28.6139, lng: 77.2090 }, // Default coordinates
+      };
+
+      addListing(newListing);
+      toast.success("Space listed successfully!");
+      navigate("/dashboard");
+    } catch (error) {
+      toast.error("Failed to create listing. Please try again.");
+      console.error(error);
+    }
+  };
 
   const canNext = () => {
     if (step === 1) return formData.title && formData.category;
@@ -34,9 +86,8 @@ const AddListing = () => {
       <div className="flex items-center gap-2 mb-8">
         {steps.map((s, i) => (
           <div key={s} className="flex items-center gap-2 flex-1">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-colors ${
-              i + 1 <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-colors ${i + 1 <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
               {i + 1 < step ? <Check size={14} /> : i + 1}
             </div>
             <span className="text-xs text-muted-foreground hidden sm:block">{s}</span>
@@ -72,11 +123,10 @@ const AddListing = () => {
                     <button
                       key={cat.id}
                       onClick={() => updateField("category", cat.id)}
-                      className={`px-3 py-2.5 rounded-xl text-sm text-left transition-colors border ${
-                        formData.category === cat.id
+                      className={`px-3 py-2.5 rounded-xl text-sm text-left transition-colors border ${formData.category === cat.id
                           ? "border-primary bg-primary/5 text-foreground"
                           : "border-border text-muted-foreground hover:border-foreground"
-                      }`}
+                        }`}
                     >
                       {cat.label}
                     </button>
@@ -94,10 +144,29 @@ const AddListing = () => {
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground">Photos</label>
-                <div className="mt-2 border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                  <Upload size={32} className="mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Click to upload photos</p>
-                </div>
+                {!formData.image ? (
+                  <div className="mt-2 border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <Upload size={32} className="mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">Click to upload photos</p>
+                    <p className="text-xs text-muted-foreground mt-1">(Max 5MB)</p>
+                  </div>
+                ) : (
+                  <div className="mt-2 relative rounded-2xl overflow-hidden aspect-video group">
+                    <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => updateField("image", "")}
+                      className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -111,11 +180,10 @@ const AddListing = () => {
                     <button
                       key={loc}
                       onClick={() => updateField("location", loc)}
-                      className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm transition-colors border ${
-                        formData.location === loc
+                      className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm transition-colors border ${formData.location === loc
                           ? "border-primary bg-primary/5 text-foreground"
                           : "border-border text-muted-foreground hover:border-foreground"
-                      }`}
+                        }`}
                     >
                       <MapPin size={16} /> {loc}
                     </button>
@@ -191,6 +259,12 @@ const AddListing = () => {
                 <div className="flex justify-between"><span className="text-muted-foreground">Location</span><span className="text-foreground font-medium">{formData.location || "—"}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Hourly</span><span className="text-foreground font-medium">₹{formData.priceHourly || "—"}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Daily</span><span className="text-foreground font-medium">₹{formData.priceDaily || "—"}</span></div>
+                {formData.image && (
+                  <div className="mt-4">
+                    <span className="text-muted-foreground block mb-2">Image Preview</span>
+                    <img src={formData.image} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -216,9 +290,9 @@ const AddListing = () => {
             Next <ChevronRight size={16} />
           </button>
         ) : (
-          <Link to="/" className="btn-primary inline-flex items-center gap-1">
+          <button onClick={handleSubmit} className="btn-primary inline-flex items-center gap-1">
             <Check size={16} /> Submit Listing
-          </Link>
+          </button>
         )}
       </div>
     </motion.div>

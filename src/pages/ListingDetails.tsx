@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Star, MapPin, ArrowLeft, Share, Heart, Wifi, Wind, Zap, Coffee, Printer, Users, Check } from "lucide-react";
-import { listings } from "@/data/listings";
+import { getListings } from "@/lib/listings-store";
 import BookingCard from "@/components/BookingCard";
 
 const amenityIcons: Record<string, React.ElementType> = {
@@ -12,7 +12,8 @@ const amenityIcons: Record<string, React.ElementType> = {
 const ListingDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const listing = listings.find((l) => l.id === Number(id));
+  const allListings = getListings();
+  const listing = allListings.find((l) => l.id === Number(id));
 
   if (!listing) {
     return (

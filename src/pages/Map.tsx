@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { listings } from "@/data/listings";
+import { getListings } from "@/lib/listings-store";
 import { Star, MapPin, IndianRupee } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -11,6 +11,9 @@ const Map = () => {
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
+
+    // Get listings
+    const listings = getListings();
 
     // Initialize map
     const map = L.map(mapRef.current);

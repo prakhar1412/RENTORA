@@ -1,18 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import CategoryBar from "@/components/CategoryBar";
 import ListingCard from "@/components/ListingCard";
 import SidebarFilters from "@/components/SidebarFilters";
 import { AuroraBackgroundDemo } from "@/components/AuroraBackgroundDemo";
-import { listings } from "@/data/listings";
+import { getListings } from "@/lib/listings-store";
 
 const Home = () => {
   const [activeCategory, setActiveCategory] = useState("all");
+  const [listingData, setListingData] = useState(() => getListings());
+
+  useEffect(() => {
+    // Re-fetch listings whenever component mounts to ensure fresh data
+    setListingData(getListings());
+
+    // Listen for updates
+    const handleUpdate = () => setListingData(getListings());
+    window.addEventListener("listings-updated", handleUpdate);
+    return () => window.removeEventListener("listings-updated", handleUpdate);
+  }, []);
 
   const filteredListings =
     activeCategory === "all"
-      ? listings
-      : listings.filter((l) => l.category === activeCategory);
+      ? listingData
+      : listingData.filter((l) => l.category === activeCategory);
 
   return (
     <>

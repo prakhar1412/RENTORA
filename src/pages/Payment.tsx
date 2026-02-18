@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, CreditCard, Calendar, Clock, MapPin, CheckCircle, Loader2 } from "lucide-react";
-import { listings } from "@/data/listings";
+import { getListings } from "@/lib/listings-store";
 import { useToast } from "@/hooks/use-toast";
 
 const Payment = () => {
@@ -11,7 +11,8 @@ const Payment = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
 
-    const listing = listings.find((l) => l.id === Number(id));
+    const allListings = getListings();
+    const listing = allListings.find((l) => l.id === Number(id));
 
     // Default values if state is missing (fallback)
     const bookingDetails = location.state || {
